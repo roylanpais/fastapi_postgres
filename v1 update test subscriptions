@@ -1,0 +1,104 @@
+# Models and Schemas Setup
+from sqlalchemy import Column, Integer, String, Float, Date, Boolean, ForeignKey
+from sqlalchemy.orm import relationship
+from datetime import date
+from pydantic import BaseModel
+
+# Models
+class Subscription(Base):
+    __tablename__ = "subscriptions"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    magazine_id = Column(Integer, ForeignKey("magazines.id"))
+    plan_id = Column(Integer, ForeignKey("plans.id"))
+    price = Column(Float, nullable=False)
+    next_renewal_date = Column(Date, nullable=False)
+    is_active = Column(Boolean, default=True)
+
+    user = relationship("User")
+    magazine = relationship("Magazine")
+    plan = relationship("Plan")
+
+# Schemas
+class SubscriptionBase(BaseModel):
+    user_id: int
+    magazine_id: int
+    plan_id: int
+    price: float
+    next_renewal_date: date
+
+class SubscriptionCreate(SubscriptionBase):
+    pass
+
+class SubscriptionUpdate(SubscriptionBase):
+    pass
+
+class SubscriptionResponse(SubscriptionBase):
+    id: int
+    is_active: bool
+
+    class Config:
+        orm_mode = True
+
+
+# Endpoints 
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from typing import List
+
+router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
+
+@router.post("/", response_model=SubscriptionResponse)
+def create_subscription(subscription: SubscriptionCreate, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == subscription.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    magazine = db.query(Magazine).filter(Magazine.id == subscription.magazine_id).first()
+    if not magazine:
+        raise HTTPException(status_code=404, detail="Magazine not found")
+
+    plan = db.query(Plan).filter(Plan.id == subscription.plan_id).first()
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    db_subscription = Subscription(**subscription.dict())
+    db.add(db_subscription)
+    db.commit()
+    db.refresh(db_subscription)
+    return db_subscription
+
+@router.get("/", response_model=List[SubscriptionResponse])
+def get_subscriptions(db: Session = Depends(get_db)):
+    return db.query(Subscription).filter(Subscription.is_active == True).all()
+
+@router.get("/{subscription_id}", response_model=SubscriptionResponse)
+def get_subscription(subscription_id: int, db: Session = Depends(get_db)):
+    subscription = db.query(Subscription).filter(Subscription.id == subscription_id).first()
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+    return subscription
+
+@router.put("/{subscription_id}", response_model=SubscriptionResponse)
+def update_subscription(subscription_id: int, subscription: SubscriptionUpdate, db: Session = Depends(get_db)):
+    db_subscription = db.query(Subscription).filter(Subscription.id == subscription_id).first()
+    if not db_subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+
+    for key, value in subscription.dict().items():
+        setattr(db_subscription, key, value)
+
+    db.commit()
+    db.refresh(db_subscription)
+    return db_subscription
+
+@router.delete("/{subscription_id}")
+def delete_subscription(subscription_id: int, db: Session = Depends(get_db)):
+    subscription = db.query(Subscription).filter(Subscription.id == subscription_id).first()
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+
+    subscription.is_active = False
+    db.commit()
+    return {"message": "Subscription deleted successfully"}
