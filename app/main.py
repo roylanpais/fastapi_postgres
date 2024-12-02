@@ -1,0 +1,16 @@
+from fastapi import FastAPI
+from app.api.endpoints import users, magazines, plans, subscriptions
+from app.db.base import Base
+from app.db.sessions import engine
+
+# Initialize the database
+Base.metadata.create_all(bind=engine)
+
+# Create FastAPI instance
+app = FastAPI(title="Magazine Subscription API")
+
+# Include routers
+app.include_router(users.router, prefix="/users", tags=["Users"])
+app.include_router(magazines.router, prefix="/magazines", tags=["Magazines"])
+app.include_router(plans.router, prefix="/plans", tags=["Plans"])
+app.include_router(subscriptions.router, prefix="/subscriptions", tags=["Subscriptions"])
