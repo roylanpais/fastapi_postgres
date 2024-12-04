@@ -7,7 +7,6 @@ from app.utils import create_access_token, create_refresh_token, verify_password
 
 router = APIRouter()
 
-
 @router.post("/")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == form_data.username).first()

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
-from api.endpoints import users, magazines, plans, subscriptions, token
-from db.base import Base
-from db.sessions import engine
+from app.api.endpoints import users, magazines, plans, subscriptions, token
+from app.db.base import Base
+from app.db.sessions import engine
 
 # Initialize the database
 Base.metadata.create_all(bind=engine)

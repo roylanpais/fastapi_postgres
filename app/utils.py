@@ -1,5 +1,5 @@
 
-from app.api.endpoints.token import oauth2_scheme
+from app.core.oauth_scheme import oauth2_scheme
 from app.db.sessions import get_db
 from sqlalchemy.orm import Session
 from fastapi import Depends, HTTPException, status

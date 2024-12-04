@@ -1,7 +1,8 @@
 from pydantic import BaseModel, Optional
 
-class Token(BaseModel):
+class TokenBase(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str
 
 class TokenData(BaseModel):
